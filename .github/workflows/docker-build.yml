@@ -1,0 +1,104 @@
+name: Build and Push Docker Images
+
+on:
+  release:
+    types: [published]
+  schedule:
+    # Run every day at midnight UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    inputs:
+      build_all:
+        description: 'Build all apps with current versions'
+        type: boolean
+        default: false
+        required: false
+      specific_app:
+        description: 'Specific app to build (leave empty to process releases)'
+        type: string
+        required: false
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          repository: saleor/apps
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Get apps to build
+        id: get_apps
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.build_all }}" == "true" ]]; then
+            # Find all apps and their versions from package.json files
+            echo "Building all apps..."
+            for app_dir in apps/*; do
+              if [ -f "$app_dir/package.json" ]; then
+                app_name=$(basename "$app_dir")
+                version=$(node -p "require('./$app_dir/package.json').version")
+                echo "$app_name@$version" >> apps_to_build.txt
+              fi
+            done
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ github.event.inputs.specific_app }}" ]]; then
+            # Build specific app
+            app_name="${{ github.event.inputs.specific_app }}"
+            if [ -f "apps/$app_name/package.json" ]; then
+              version=$(node -p "require('./apps/$app_name/package.json').version")
+              echo "$app_name@$version" >> apps_to_build.txt
+            else
+              echo "Error: App $app_name not found"
+              exit 1
+            fi
+          else
+            # Get releases from GitHub API
+            releases=$(curl -s "https://api.github.com/repos/saleor/apps/releases")
+            echo "$releases" | jq -r '.[] | select(.tag_name | contains("@")) | .tag_name' > apps_to_build.txt
+          fi
+          
+          echo "Apps to build:"
+          cat apps_to_build.txt
+
+      - name: Build and push Docker images
+        run: |
+          while IFS= read -r release; do
+            # Extract app name and version from release tag (e.g., "app-avatax@1.12.3")
+            app_name=$(echo $release | cut -d'@' -f1)
+            version=$(echo $release | cut -d'@' -f2)
+            
+            echo "Building $app_name version $version"
+            
+            # Convert to lowercase for Docker tag compatibility
+            app_name_lower=$(echo $app_name | tr '[:upper:]' '[:lower:]')
+            
+            # Build Docker image
+            docker buildx build \
+              --platform linux/amd64,linux/arm64 \
+              --build-arg APP_PATH=apps/$app_name \
+              -t ghcr.io/${{ github.repository_owner }}/$app_name_lower:$version \
+              -t ghcr.io/${{ github.repository_owner }}/$app_name_lower:latest \
+              --push \
+              .
+            
+            echo "Successfully built and pushed $app_name version $version"
+          done < apps_to_build.txt
