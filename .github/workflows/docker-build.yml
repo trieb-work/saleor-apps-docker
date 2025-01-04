@@ -26,11 +26,17 @@ jobs:
       packages: write
 
     steps:
-      - name: Checkout repository
+      - name: Checkout Docker configuration
+        uses: actions/checkout@v3
+        with:
+          path: docker-config
+
+      - name: Checkout Saleor Apps
         uses: actions/checkout@v3
         with:
           repository: saleor/apps
           fetch-depth: 0
+          path: saleor-apps
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -49,6 +55,7 @@ jobs:
 
       - name: Get apps to build
         id: get_apps
+        working-directory: saleor-apps
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.build_all }}" == "true" ]]; then
             # Find all apps and their versions from package.json files
@@ -57,7 +64,7 @@ jobs:
               if [ -f "$app_dir/package.json" ]; then
                 app_name=$(basename "$app_dir")
                 version=$(node -p "require('./$app_dir/package.json').version")
-                echo "$app_name@$version" >> apps_to_build.txt
+                echo "$app_name@$version" >> ../apps_to_build.txt
               fi
             done
           elif [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ github.event.inputs.specific_app }}" ]]; then
@@ -65,7 +72,7 @@ jobs:
             app_name="${{ github.event.inputs.specific_app }}"
             if [ -f "apps/$app_name/package.json" ]; then
               version=$(node -p "require('./apps/$app_name/package.json').version")
-              echo "$app_name@$version" >> apps_to_build.txt
+              echo "$app_name@$version" >> ../apps_to_build.txt
             else
               echo "Error: App $app_name not found"
               exit 1
@@ -73,13 +80,14 @@ jobs:
           else
             # Get releases from GitHub API
             releases=$(curl -s "https://api.github.com/repos/saleor/apps/releases")
-            echo "$releases" | jq -r '.[] | select(.tag_name | contains("@")) | .tag_name' > apps_to_build.txt
+            echo "$releases" | jq -r '.[] | select(.tag_name | contains("@")) | .tag_name' > ../apps_to_build.txt
           fi
           
           echo "Apps to build:"
-          cat apps_to_build.txt
+          cat ../apps_to_build.txt
 
       - name: Build and push Docker images
+        working-directory: saleor-apps
         run: |
           while IFS= read -r release; do
             # Extract app name and version from release tag (e.g., "app-avatax@1.12.3")
@@ -91,14 +99,15 @@ jobs:
             # Convert to lowercase for Docker tag compatibility
             app_name_lower=$(echo $app_name | tr '[:upper:]' '[:lower:]')
             
-            # Build Docker image
+            # Build Docker image using Dockerfile from docker-config
             docker buildx build \
               --platform linux/amd64,linux/arm64 \
               --build-arg APP_PATH=apps/$app_name \
               -t ghcr.io/${{ github.repository_owner }}/$app_name_lower:$version \
               -t ghcr.io/${{ github.repository_owner }}/$app_name_lower:latest \
+              -f ../docker-config/Dockerfile \
               --push \
               .
             
             echo "Successfully built and pushed $app_name version $version"
-          done < apps_to_build.txt
+          done < ../apps_to_build.txt
