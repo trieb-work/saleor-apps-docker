@@ -19,22 +19,30 @@ ARG APP_PATH
 # Add standalone output to next.config.js more reliably
 RUN cd apps/${APP_PATH} && \
     if [ -f "package.json" ] && grep -q '"type": *"module"' package.json; then \
-        # ES Module case
-        if grep -q "const nextConfig = {" next.config.js; then \
+        # ES Module case (like avatax)
+        if grep -q "export default" next.config.js; then \
+            # Already has export default, modify the config object
             sed -i 's/const nextConfig = {/const nextConfig = { output: "standalone",/' next.config.js; \
-        elif grep -q "const nextConfig = ()" next.config.js; then \
-            sed -i 's/return {/return { output: "standalone",/' next.config.js; \
+        elif grep -q "const nextConfig = {" next.config.js; then \
+            # Has config object but no export
+            sed -i 's/const nextConfig = {/const nextConfig = { output: "standalone",/' next.config.js && \
+            echo "export default nextConfig;" >> next.config.js; \
         else \
-            # Fallback: add export after the config
+            # Complex case, add at the end
             echo "const originalConfig = nextConfig;" >> next.config.js && \
             echo "export default { ...originalConfig, output: 'standalone' };" >> next.config.js; \
         fi \
     else \
-        # CommonJS case
+        # CommonJS case (like cms-v2)
         if grep -q "module.exports = nextConfig" next.config.js; then \
+            # Simple export case
             sed -i 's/const nextConfig = {/const nextConfig = { output: "standalone",/' next.config.js; \
         elif grep -q "const nextConfig = ()" next.config.js; then \
+            # Function case
             sed -i 's/return {/return { output: "standalone",/' next.config.js; \
+        elif grep -q "module.exports = {" next.config.js; then \
+            # Direct object export
+            sed -i 's/module.exports = {/module.exports = { output: "standalone",/' next.config.js; \
         else \
             # Fallback: try to add it before the last export
             sed -i '$ i const originalConfig = module.exports;' next.config.js && \
