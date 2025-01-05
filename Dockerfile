@@ -19,9 +19,10 @@ ARG APP_PATH
 # Add standalone output to next.config.js
 RUN sed -i 's/const nextConfig = {/const nextConfig = { output: "standalone",/' apps/${APP_PATH}/next.config.js
 
-# Set environment variables
+# Set environment variables. Mostly dummy that get replaces on runtime
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV SECRET_KEY="dummy_secret_key_for_build_time_only"
+ENV APL="file"
 ENV NODE_ENV="production"
 
 RUN cd apps/${APP_PATH} && pnpm build 
