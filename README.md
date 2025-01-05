@@ -14,15 +14,23 @@ Example apps:
 
 ## Using the Docker Images
 
-To pull an image, use:
+To pull and run an image:
 
 ```bash
 # Pull a specific version
 docker pull ghcr.io/trieb-work/app-avatax:1.12.3
 
-# Pull the latest version
-docker pull ghcr.io/trieb-work/app-avatax:latest
+# Run the container with required environment variables
+docker run -p 3000:3000 \
+  -e SECRET_KEY="your_secret_key_here" \
+  ghcr.io/trieb-work/app-avatax:1.12.3
 ```
+
+### Required Environment Variables
+
+- `SECRET_KEY`: Required for app functionality. Must be provided at runtime.
+- `PORT`: Default is 3000
+- `HOSTNAME`: Default is "0.0.0.0"
 
 ## Image Updates
 
@@ -46,18 +54,10 @@ You can manually trigger builds in the GitHub Actions interface:
 
 ## Image Specifications
 
-- Base Image: `node:18-alpine`
+- Base Image: `node:22-alpine`
 - Platforms: `linux/amd64`, `linux/arm64`
 - Exposed Port: `3000`
 - Non-root user: `nextjs`
-
-## Environment Variables
-
-The following environment variables are available:
-
-- `PORT`: Default is 3000
-- `HOSTNAME`: Default is "0.0.0.0"
-- `NODE_ENV`: Set to "production"
 
 ## Contributing
 

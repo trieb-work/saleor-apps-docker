@@ -38,16 +38,6 @@ jobs:
           fetch-depth: 0
           path: saleor-apps
 
-      - name: Generate pnpm-lock.yaml
-        working-directory: saleor-apps
-        run: |
-          corepack enable
-          # Extract pnpm version from package.json
-          PNPM_VERSION=$(node -p "require('./package.json').packageManager.replace('pnpm@', '')")
-          echo "Using pnpm version: $PNPM_VERSION"
-          corepack prepare pnpm@$PNPM_VERSION --activate
-          pnpm install --lockfile-only
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
@@ -61,7 +51,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: '22'
 
       - name: Get apps to build
         id: get_apps
@@ -97,31 +87,39 @@ jobs:
           cat ../apps_to_build.txt
 
       - name: Build and push Docker images
-        working-directory: saleor-apps
+        working-directory: docker-config
         run: |
-          # Extract pnpm version for docker build arg
-          PNPM_VERSION=$(node -p "require('./package.json').packageManager.replace('pnpm@', '')")
-          
           while IFS= read -r release; do
             # Extract app name and version from release tag (e.g., "app-avatax@1.12.3")
             app_name=$(echo $release | cut -d'@' -f1)
             version=$(echo $release | cut -d'@' -f2)
+            
+            # Get the app path (without app- prefix)
+            app_path=${app_name#app-}
             
             echo "Building $app_name version $version"
             
             # Convert to lowercase for Docker tag compatibility
             app_name_lower=$(echo $app_name | tr '[:upper:]' '[:lower:]')
             
-            # Build Docker image using Dockerfile from docker-config
-            docker buildx build \
-              --platform linux/amd64,linux/arm64 \
-              --build-arg APP_PATH=apps/$app_name \
-              --build-arg PNPM_VERSION=$PNPM_VERSION \
-              -t ghcr.io/${{ github.repository_owner }}/$app_name_lower:$version \
-              -t ghcr.io/${{ github.repository_owner }}/$app_name_lower:latest \
-              -f ../docker-config/Dockerfile \
-              --push \
-              .
+            # Checkout the specific tag
+            cd ../saleor-apps
+            git checkout $app_name@$version
+            cd ../docker-config
             
-            echo "Successfully built and pushed $app_name version $version"
+            # Build and push the Docker image
+            docker buildx build \
+              --platform linux/amd64 \
+              --push \
+              --build-arg APP_NAME=$app_name \
+              --build-arg APP_PATH=$app_path \
+              -t ghcr.io/trieb-work/$app_name_lower:$version \
+              -f Dockerfile \
+              ../saleor-apps
+            
+            # Reset git state for next iteration
+            cd ../saleor-apps
+            git checkout main
+            cd ../docker-config
+            
           done < ../apps_to_build.txt

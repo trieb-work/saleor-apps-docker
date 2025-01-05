@@ -1,69 +1,47 @@
-FROM node:18-alpine AS deps
+# Install dependencies only when needed
+FROM node:22-alpine AS base
+RUN apk add --no-cache libc6-compat git
 
-ARG PNPM_VERSION
-RUN apk add --no-cache libc6-compat
-RUN corepack enable
-RUN corepack prepare pnpm@${PNPM_VERSION} --activate
-
-WORKDIR /app
-
-# Copy workspace configuration and root package files
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
-
-# Copy all package.json files from workspace packages
-COPY apps/*/package.json ./apps/
-COPY packages/*/package.json ./packages/
-COPY templates/*/package.json ./templates/
-
-# Install dependencies
-RUN pnpm install --frozen-lockfile
-
-# Rebuild the source code only when needed
-FROM node:18-alpine AS builder
-
-ARG PNPM_VERSION
-RUN corepack enable
-RUN corepack prepare pnpm@${PNPM_VERSION} --activate
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable pnpm
 
 WORKDIR /app
 
-# Copy all files
 COPY . .
 
-# Copy installed dependencies
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/*/node_modules ./apps/*/node_modules
-COPY --from=deps /app/packages/*/node_modules ./packages/*/node_modules
+ARG APP_NAME
 
-# Next.js collects completely anonymous telemetry data about general usage.
-ENV NEXT_TELEMETRY_DISABLED 1
+RUN pnpm install --filter=${APP_NAME}
 
 ARG APP_PATH
-WORKDIR /app/${APP_PATH}
+# Add standalone output to next.config.js
+RUN sed -i 's/const nextConfig = {/const nextConfig = { output: "standalone",/' apps/${APP_PATH}/next.config.js
 
-# Build the specific app
-RUN pnpm build
+# Set environment variables
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV SECRET_KEY="dummy_secret_key_for_build_time_only"
+ENV NODE_ENV="production"
+
+RUN cd apps/${APP_PATH} && pnpm build 
+
 
 # Production image, copy all the files and run next
-FROM node:18-alpine AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
+ENV NODE_ENV="production"
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 ARG APP_PATH
-COPY --from=builder /app/${APP_PATH}/public ./public
-COPY --from=builder /app/${APP_PATH}/.next/standalone ./
-COPY --from=builder /app/${APP_PATH}/.next/static ./.next/static
+COPY --from=base /app/apps/${APP_PATH}/.next/standalone ./
+COPY --from=base /app/apps/${APP_PATH}/.next/static ./.next/static
 
 USER nextjs
 
-EXPOSE 3000
-
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
+ENV PORT="8000"
+EXPOSE 8000
 
 CMD ["node", "server.js"]
