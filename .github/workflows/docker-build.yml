@@ -78,9 +78,23 @@ jobs:
               exit 1
             fi
           else
-            # Get releases from GitHub API
+            # Get releases from GitHub API and filter only for actual apps
             releases=$(curl -s "https://api.github.com/repos/saleor/apps/releases")
-            echo "$releases" | jq -r '.[] | select(.tag_name | contains("@")) | .tag_name' > ../apps_to_build.txt
+            
+            # Create a list of valid app names from the apps directory
+            echo "Getting valid app names..."
+            valid_apps=()
+            for app_dir in apps/*; do
+              if [ -f "$app_dir/package.json" ]; then
+                app_name=$(node -p "require('./$app_dir/package.json').name")
+                valid_apps+=("$app_name")
+              fi
+            done
+            
+            # Filter releases to only include valid apps
+            for app in "${valid_apps[@]}"; do
+              echo "$releases" | jq -r --arg app "$app" '.[] | select(.tag_name | startswith($app + "@")) | .tag_name' >> ../apps_to_build.txt
+            done
           fi
           
           echo "Apps to build:"
@@ -90,7 +104,7 @@ jobs:
         working-directory: docker-config
         run: |
           while IFS= read -r release; do
-            # Extract app name and version from release tag (e.g., "app-avatax@1.12.3")
+            # Extract app name and version from release tag
             app_name=$(echo $release | cut -d'@' -f1)
             version=$(echo $release | cut -d'@' -f2)
             
