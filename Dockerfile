@@ -1,5 +1,6 @@
-# Install dependencies only when needed
-FROM node:22-alpine AS base
+FROM node:22-alpine AS default
+
+FROM default AS base
 RUN apk add --no-cache libc6-compat git
 
 ENV PNPM_HOME="/pnpm"
@@ -27,7 +28,7 @@ RUN cd apps/${APP_PATH} && pnpm build
 
 
 # Production image, copy all the files and run next
-FROM node:22-alpine AS runner
+FROM default AS runner
 WORKDIR /app
 
 ENV NODE_ENV="production"
@@ -43,5 +44,7 @@ USER nextjs
 
 ENV PORT="8000"
 EXPOSE 8000
+
+WORKDIR /app/apps/${APP_PATH}
 
 CMD ["node", "server.js"]
