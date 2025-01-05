@@ -1,6 +1,4 @@
-FROM node:22-alpine AS default
-
-FROM default AS base
+FROM node:22-alpine AS base
 RUN apk add --no-cache libc6-compat git
 
 ENV PNPM_HOME="/pnpm"
@@ -9,42 +7,46 @@ RUN corepack enable pnpm
 
 WORKDIR /app
 
-COPY . .
-
+# Clone the specific version of the app
 ARG APP_NAME
+ARG APP_VERSION
 
+RUN git clone https://github.com/saleor/apps.git . && \
+    git checkout ${APP_NAME}@${APP_VERSION}
+
+# Install dependencies
 RUN pnpm install --filter=${APP_NAME}
-
-ARG APP_PATH
-# Add standalone output to next.config.js
-RUN sed -i 's/const nextConfig = {/const nextConfig = { output: "standalone",/' apps/${APP_PATH}/next.config.js
 
 # Set environment variables
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV SECRET_KEY="dummy_secret_key_for_build_time_only"
 ENV NODE_ENV="production"
 
-RUN cd apps/${APP_PATH} && pnpm build 
-
+# Get the app path (remove 'app-' prefix)
+ARG APP_PATH
+RUN cd apps/${APP_PATH} && \
+    echo "{ \"output\": \"standalone\" }" > next.config.temp.json && \
+    jq -s '.[0] * .[1]' next.config.js next.config.temp.json > next.config.new.js && \
+    mv next.config.new.js next.config.js && \
+    pnpm build
 
 # Production image, copy all the files and run next
-FROM default AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV="production"
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
 
 ARG APP_PATH
 COPY --from=base /app/apps/${APP_PATH}/.next/standalone ./
 COPY --from=base /app/apps/${APP_PATH}/.next/static ./.next/static
+COPY --from=base /app/apps/${APP_PATH}/package.json ./package.json
 
 USER nextjs
 
-ENV PORT="8000"
-EXPOSE 8000
-
-WORKDIR /app/apps/${APP_PATH}
+ENV PORT="3000"
+EXPOSE 3000
 
 CMD ["node", "server.js"]

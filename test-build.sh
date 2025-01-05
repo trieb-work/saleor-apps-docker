@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# echo "🧹 Cleaning up previous test..."
-# rm -rf saleor-apps
+echo "🧹 Cleaning up previous test..."
+rm -rf saleor-apps
 
-# echo "📦 Cloning Saleor Apps repository..."
-# git clone https://github.com/saleor/apps.git saleor-apps
+echo "📦 Cloning Saleor Apps repository..."
+git clone https://github.com/saleor/apps.git saleor-apps
 
 # Build a test app (e.g., avatax)
 APP_NAME="app-avatax"
