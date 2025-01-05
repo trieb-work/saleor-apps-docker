@@ -25,6 +25,6 @@ DOCKER_BUILDKIT=1 docker buildx build \
     --progress=plain \
     --build-arg APP_NAME=${APP_NAME} \
     --build-arg APP_PATH=${APP_PATH} \
-    -t ghcr.io/trieb-work/${APP_NAME}:${APP_VERSION} \
+    -t ghcr.io/trieb-work/saleor-apps/${APP_NAME}:${APP_VERSION} \
     -f Dockerfile \
     ./saleor-apps

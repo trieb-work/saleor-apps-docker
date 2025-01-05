@@ -113,7 +113,7 @@ jobs:
               --push \
               --build-arg APP_NAME=$app_name \
               --build-arg APP_PATH=$app_path \
-              -t ghcr.io/trieb-work/$app_name_lower:$version \
+              -t ghcr.io/trieb-work/saleor-apps/${app_name}:${version} \
               -f Dockerfile \
               ../saleor-apps
             
