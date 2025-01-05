@@ -4,12 +4,12 @@ This repository automatically builds and publishes Docker images for [Saleor App
 
 ## Available Images
 
-Images are available for all apps in the Saleor Apps repository. Each app has its own image with both version-specific and latest tags.
+Images are available for all apps in the Saleor Apps repository. Each app has its own image with version-specific tags.
 
 Example apps:
-- `app-avatax`
-- `app-invoices`
-- `app-slack`
+- `saleor-apps/app-avatax`
+- `saleor-apps/app-invoices`
+- `saleor-apps/app-slack`
 - And more...
 
 ## Using the Docker Images
@@ -18,12 +18,12 @@ To pull and run an image:
 
 ```bash
 # Pull a specific version
-docker pull ghcr.io/trieb-work/app-avatax:1.12.3
+docker pull ghcr.io/trieb-work/saleor-apps/app-avatax:1.12.3
 
 # Run the container with required environment variables
 docker run -p 3000:3000 \
   -e SECRET_KEY="your_secret_key_here" \
-  ghcr.io/trieb-work/app-avatax:1.12.3
+  ghcr.io/trieb-work/saleor-apps/app-avatax:1.12.3
 ```
 
 ### Required Environment Variables
@@ -55,7 +55,7 @@ You can manually trigger builds in the GitHub Actions interface:
 ## Image Specifications
 
 - Base Image: `node:22-alpine`
-- Platforms: `linux/amd64`, `linux/arm64`
+- Platform: `linux/amd64`
 - Exposed Port: `3000`
 - Non-root user: `nextjs`
 

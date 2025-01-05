@@ -62,7 +62,7 @@ jobs:
             echo "Building all apps..."
             for app_dir in apps/*; do
               if [ -f "$app_dir/package.json" ]; then
-                app_name=$(basename "$app_dir")
+                app_name=$(node -p "require('./$app_dir/package.json').name")
                 version=$(node -p "require('./$app_dir/package.json').version")
                 echo "$app_name@$version" >> ../apps_to_build.txt
               fi
@@ -70,8 +70,8 @@ jobs:
           elif [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ github.event.inputs.specific_app }}" ]]; then
             # Build specific app
             app_name="${{ github.event.inputs.specific_app }}"
-            if [ -f "apps/$app_name/package.json" ]; then
-              version=$(node -p "require('./apps/$app_name/package.json').version")
+            if [ -f "apps/${app_name}/package.json" ]; then
+              version=$(node -p "require('./apps/${app_name}/package.json').version")
               echo "$app_name@$version" >> ../apps_to_build.txt
             else
               echo "Error: App $app_name not found"
@@ -94,13 +94,11 @@ jobs:
             app_name=$(echo $release | cut -d'@' -f1)
             version=$(echo $release | cut -d'@' -f2)
             
-            # Get the app path (without app- prefix)
-            app_path=${app_name#app-}
+            # Get the app path (without app- prefix if present)
+            app_path=$app_name
+            [[ $app_name == app-* ]] && app_path=${app_name#app-}
             
             echo "Building $app_name version $version"
-            
-            # Convert to lowercase for Docker tag compatibility
-            app_name_lower=$(echo $app_name | tr '[:upper:]' '[:lower:]')
             
             # Checkout the specific tag
             cd ../saleor-apps

@@ -7,12 +7,12 @@ echo "📦 Cloning Saleor Apps repository..."
 git clone https://github.com/saleor/apps.git saleor-apps
 
 # Build a test app (e.g., avatax)
-APP_NAME="app-avatax"
-APP_PATH="avatax"
+APP_NAME="app-avatax"  # This should match the name in package.json
+APP_PATH="avatax"      # This is the directory name in apps/
 echo "📝 Getting version for $APP_NAME..."
-APP_VERSION=$(git ls-remote --tags https://github.com/saleor/apps | grep $APP_NAME | grep -v '\^' | cut -d '/' -f 3 | sort -V | tail -n 1 | cut -d '@' -f 2)
+APP_VERSION=$(git ls-remote --tags https://github.com/saleor/apps | grep "$APP_NAME@" | grep -v '\^' | cut -d '/' -f 3 | sort -V | tail -n 1 | cut -d '@' -f 2)
 
-# checking out the last release in the saleor-apps repo (tag name is e.g., app-avatax@1.12.3)
+# checking out the last release in the saleor-apps repo (tag name matches package.json name)
 echo "📝 Checking out $APP_VERSION for $APP_NAME..."
 cd saleor-apps
 git checkout $APP_NAME@$APP_VERSION
