@@ -91,9 +91,10 @@ jobs:
               fi
             done
             
-            # Filter releases to only include valid apps
+            # Filter releases to only include valid apps with exact matching
             for app in "${valid_apps[@]}"; do
-              echo "$releases" | jq -r --arg app "$app" '.[] | select(.tag_name | startswith($app + "@")) | .tag_name' >> ../apps_to_build.txt
+              echo "$releases" | jq -r --arg app "$app" \
+                '.[] | select(.tag_name | test("^" + $app + "@[0-9]+\\.[0-9]+\\.[0-9]+$")) | .tag_name' >> ../apps_to_build.txt
             done
           fi
           
