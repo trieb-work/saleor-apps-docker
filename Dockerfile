@@ -18,16 +18,28 @@ RUN pnpm install
 ARG APP_PATH
 # Add standalone output to next.config.js more reliably
 RUN cd apps/${APP_PATH} && \
-    if grep -q "module.exports = nextConfig" next.config.js; then \
-        # Simple config case
-        sed -i 's/const nextConfig = {/const nextConfig = { output: "standalone",/' next.config.js; \
-    elif grep -q "const nextConfig = ()" next.config.js; then \
-        # Function case (like cms-v2)
-        sed -i 's/return {/return { output: "standalone",/' next.config.js; \
+    if [ -f "package.json" ] && grep -q '"type": *"module"' package.json; then \
+        # ES Module case
+        if grep -q "const nextConfig = {" next.config.js; then \
+            sed -i 's/const nextConfig = {/const nextConfig = { output: "standalone",/' next.config.js; \
+        elif grep -q "const nextConfig = ()" next.config.js; then \
+            sed -i 's/return {/return { output: "standalone",/' next.config.js; \
+        else \
+            # Fallback: add export after the config
+            echo "const originalConfig = nextConfig;" >> next.config.js && \
+            echo "export default { ...originalConfig, output: 'standalone' };" >> next.config.js; \
+        fi \
     else \
-        # Fallback: try to add it before the last export
-        sed -i '$ i const originalConfig = module.exports;' next.config.js && \
-        sed -i '$ i module.exports = { ...originalConfig, output: "standalone" };' next.config.js; \
+        # CommonJS case
+        if grep -q "module.exports = nextConfig" next.config.js; then \
+            sed -i 's/const nextConfig = {/const nextConfig = { output: "standalone",/' next.config.js; \
+        elif grep -q "const nextConfig = ()" next.config.js; then \
+            sed -i 's/return {/return { output: "standalone",/' next.config.js; \
+        else \
+            # Fallback: try to add it before the last export
+            sed -i '$ i const originalConfig = module.exports;' next.config.js && \
+            sed -i '$ i module.exports = { ...originalConfig, output: "standalone" };' next.config.js; \
+        fi \
     fi
 
 # Set environment variables. Mostly dummy that get replaced on runtime
