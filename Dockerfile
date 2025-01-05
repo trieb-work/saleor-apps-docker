@@ -1,7 +1,7 @@
 FROM node:22-alpine AS default
 
 FROM default AS base
-RUN apk add --no-cache libc6-compat git
+RUN apk add --no-cache libc6-compat git jq
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
@@ -16,17 +16,27 @@ ARG APP_NAME
 RUN pnpm install
 
 ARG APP_PATH
-# Add standalone output to next.config.js
-RUN sed -i 's/const nextConfig = {/const nextConfig = { output: "standalone",/' apps/${APP_PATH}/next.config.js
+# Add standalone output to next.config.js more reliably
+RUN cd apps/${APP_PATH} && \
+    if grep -q "module.exports = nextConfig" next.config.js; then \
+        # Simple config case
+        sed -i 's/const nextConfig = {/const nextConfig = { output: "standalone",/' next.config.js; \
+    elif grep -q "const nextConfig = ()" next.config.js; then \
+        # Function case (like cms-v2)
+        sed -i 's/return {/return { output: "standalone",/' next.config.js; \
+    else \
+        # Fallback: try to add it before the last export
+        sed -i '$ i const originalConfig = module.exports;' next.config.js && \
+        sed -i '$ i module.exports = { ...originalConfig, output: "standalone" };' next.config.js; \
+    fi
 
-# Set environment variables. Mostly dummy that get replaces on runtime
+# Set environment variables. Mostly dummy that get replaced on runtime
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV SECRET_KEY="dummy_secret_key_for_build_time_only"
 ENV APL="file"
 ENV NODE_ENV="production"
 
 RUN cd apps/${APP_PATH} && pnpm build 
-
 
 # Production image, copy all the files and run next
 FROM default AS runner
