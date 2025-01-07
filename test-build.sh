@@ -1,5 +1,30 @@
 #!/bin/bash
 
+# Test build script for Saleor Apps Docker images
+# 
+# Usage:
+#   Build all apps:
+#     ./test-build.sh
+#
+#   Build specific app:
+#     ./test-build.sh <app-name>
+#     Example: ./test-build.sh cms-v2
+#
+# Available apps:
+#   - app-avatax
+#   - cms-v2
+#   - search
+#   - klaviyo
+#   - products-feed
+#   - smtp
+#
+# The script will:
+# 1. Clone the Saleor Apps repository
+# 2. Get the latest version for the app(s)
+# 3. Build Docker image(s) with the correct naming convention
+#
+# Note: This is a test script. For production builds, use the GitHub Action workflow.
+
 # Function to build an app
 build_app() {
     local app_name=$1
@@ -52,8 +77,28 @@ apps=(
     "smtp:smtp"
 )
 
-for app in "${apps[@]}"; do
-    IFS=':' read -r app_name app_path <<< "$app"
-    echo "Testing $app_name ($app_path)..."
-    build_app "$app_name" "$app_path"
-done
+# Check if an app was specified
+if [ $# -eq 1 ]; then
+    # Find the app in the array
+    for app in "${apps[@]}"; do
+        IFS=':' read -r app_name app_path <<< "$app"
+        if [ "$app_name" = "$1" ]; then
+            echo "Building specific app: $app_name"
+            build_app "$app_name" "$app_path"
+            exit 0
+        fi
+    done
+    echo "❌ App $1 not found. Available apps:"
+    for app in "${apps[@]}"; do
+        IFS=':' read -r app_name _ <<< "$app"
+        echo "  - $app_name"
+    done
+    exit 1
+else
+    # Build all apps
+    for app in "${apps[@]}"; do
+        IFS=':' read -r app_name app_path <<< "$app"
+        echo "Testing $app_name ($app_path)..."
+        build_app "$app_name" "$app_path"
+    done
+fi
