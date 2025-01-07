@@ -16,39 +16,16 @@ ARG APP_NAME
 RUN pnpm install
 
 ARG APP_PATH
-# Add standalone output to next.config.js more reliably
+# Add standalone output to next.config.js
 RUN cd apps/${APP_PATH} && \
     echo "Original next.config.js:" && \
     cat next.config.js && \
-    if grep -q "import .* from" next.config.js; then \
-        # ES Module case
-        if grep -q "return {" next.config.js; then \
-            # Function returning config case (like cms-v2)
-            sed -i '/return {/a\    output: "standalone",' next.config.js; \
-        elif grep -q "export default" next.config.js; then \
-            # Direct export case
-            sed -i 's/export default {/export default { output: "standalone",/' next.config.js; \
-        else \
-            # Complex case, add at the end
-            echo "const originalConfig = nextConfig;" >> next.config.js && \
-            echo "export default { ...originalConfig, output: 'standalone' };" >> next.config.js; \
-        fi \
-    else \
-        # CommonJS case
-        if grep -q "module.exports = nextConfig" next.config.js; then \
-            # Simple export case
-            sed -i 's/const nextConfig = {/const nextConfig = { output: "standalone",/' next.config.js; \
-        elif grep -q "return {" next.config.js; then \
-            # Function case
-            sed -i '/return {/a\    output: "standalone",' next.config.js; \
-        elif grep -q "module.exports = {" next.config.js; then \
-            # Direct object export
-            sed -i 's/module.exports = {/module.exports = { output: "standalone",/' next.config.js; \
-        else \
-            # Fallback: try to add it before the last export
-            sed -i '$ i const originalConfig = module.exports;' next.config.js && \
-            sed -i '$ i module.exports = { ...originalConfig, output: "standalone" };' next.config.js; \
-        fi \
+    if grep -q "const nextConfig = {" next.config.js; then \
+        # Simple object case (most apps)
+        sed -i 's/const nextConfig = {/const nextConfig = { output: "standalone",/' next.config.js; \
+    elif grep -q "return {" next.config.js; then \
+        # Function case (cms-v2)
+        sed -i '/return {/a\    output: "standalone",' next.config.js; \
     fi && \
     echo "Modified next.config.js:" && \
     cat next.config.js
