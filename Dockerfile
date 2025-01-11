@@ -49,7 +49,7 @@ RUN adduser --system --uid 1001 nextjs
 
 ARG APP_PATH
 COPY --from=base /app/apps/${APP_PATH}/.next/standalone ./
-COPY --from=base /app/apps/${APP_PATH}/.next/static ./.next/static
+COPY --from=base /app/apps/${APP_PATH}/.next/static ./apps/${APP_PATH}/.next/static
 
 USER nextjs
 
@@ -57,5 +57,4 @@ ENV PORT="8000"
 EXPOSE 8000
 
 WORKDIR /app/apps/${APP_PATH}
-
 CMD ["node", "server.js"]

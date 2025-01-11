@@ -57,9 +57,7 @@ build_app() {
     cd ..
     
     echo "🏗️  Building Docker image for $app_name..."
-    DOCKER_BUILDKIT=1 docker buildx build \
-        --platform linux/amd64 \
-        --progress=plain \
+    docker build \
         --build-arg APP_NAME=${app_name} \
         --build-arg APP_PATH=${app_path} \
         -t ghcr.io/trieb-work/saleor-apps/${app_name}:${app_version} \
