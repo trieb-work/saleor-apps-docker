@@ -35,6 +35,10 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV SECRET_KEY="dummy_secret_key_for_build_time_only"
 ENV APL="file"
 ENV NODE_ENV="production"
+ENV AWS_ACCESS_KEY_ID="dummy"
+ENV AWS_REGION="dummy"
+ENV AWS_SECRET_ACCESS_KEY="dummy"
+ENV DYNAMODB_LOGS_TABLE_NAME="dummy"
 
 RUN cd apps/${APP_PATH} && pnpm build 
 
