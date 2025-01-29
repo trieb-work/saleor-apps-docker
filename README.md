@@ -1,6 +1,6 @@
 # Saleor Apps Docker Images
 
-This repository automatically builds and publishes Docker images for [Saleor Apps](https://github.com/saleor/apps). Each app is containerized individually and published to the GitHub Container Registry.
+This repository automatically builds and publishes Docker images for [Saleor Apps](https://github.com/trieb-work/saleor-appss). Each app is containerized individually and published to the GitHub Container Registry.
 
 ## Available Images
 
@@ -65,4 +65,4 @@ Feel free to open issues or submit pull requests if you find any problems or hav
 
 ## License
 
-This project is licensed under the same terms as Saleor Apps. See the [LICENSE](https://github.com/saleor/apps/blob/main/LICENSE) file for details.
+This project is licensed under the same terms as Saleor Apps. See the [LICENSE](https://github.com/trieb-work/saleor-appss/blob/main/LICENSE) file for details.

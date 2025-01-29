@@ -9,7 +9,7 @@ echo "🧹 Cleaning up previous test..."
 
 # Clone repo
 echo "📦 Cloning Saleor Apps repository..."
-git clone https://github.com/saleor/apps.git saleor-apps
+git clone https://github.com/trieb-work/saleor-appss.git saleor-apps
 cd saleor-apps
 
 # Apps to test
