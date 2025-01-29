@@ -73,6 +73,7 @@ apps=(
     "klaviyo:klaviyo"
     "products-feed:products-feed"
     "smtp:smtp"
+    "segment:segment"
 )
 
 # Check if an app was specified
