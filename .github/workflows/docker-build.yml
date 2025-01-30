@@ -39,17 +39,17 @@ jobs:
           path: saleor-apps
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '22'
 
@@ -79,7 +79,7 @@ jobs:
             fi
           else
             # Get releases from GitHub API and filter only for actual apps
-            releases=$(curl -s "https://api.github.com/repos/saleor/apps/releases")
+            releases=$(curl -s "https://api.github.com/repos/trieb-work/saleor-apps/releases")
             
             # Create a list of valid app names from the apps directory
             echo "Getting valid app names..."
