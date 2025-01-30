@@ -34,7 +34,7 @@ build_app() {
     rm -rf saleor-apps
     
     echo "📦 Cloning Saleor Apps repository..."
-    git clone https://github.com/trieb-work/saleor-appss.git saleor-apps
+    git clone https://github.com/trieb-work/saleor-apps.git saleor-apps
     
     echo "📝 Getting version for $app_name..."
     # Use exact tag matching with ^ and $ to avoid partial matches

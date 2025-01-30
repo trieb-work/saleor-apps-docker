@@ -34,7 +34,7 @@ jobs:
       - name: Checkout Saleor Apps
         uses: actions/checkout@v3
         with:
-          repository: saleor/apps
+          repository: trieb-work/saleor-apps
           fetch-depth: 0
           path: saleor-apps
 
