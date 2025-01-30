@@ -115,10 +115,16 @@ jobs:
             
             # Check if image already exists
             image_exists=false
-            if curl -s -f -L -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-              "https://ghcr.io/v2/trieb-work/saleor-apps/${app_name}/manifests/${version}" >/dev/null 2>&1; then
-              echo "Image ghcr.io/trieb-work/saleor-apps/${app_name}:${version} already exists, skipping..."
+            echo "Checking if image ghcr.io/trieb-work/saleor-apps/${app_name}:${version} exists..."
+            check_url="https://ghcr.io/v2/trieb-work/saleor-apps/${app_name}/manifests/${version}"
+            echo "Checking URL: $check_url"
+            echo "API Response:"
+            curl -v -L -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "$check_url" 2>&1
+            if [ $? -eq 0 ]; then
+              echo "Image exists! Skipping build..."
               continue
+            else
+              echo "Image does not exist (curl exit code: $?), proceeding with build..."
             fi
             
             echo "Building $app_name version $version"
