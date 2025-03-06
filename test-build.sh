@@ -38,7 +38,7 @@ build_app() {
     
     echo "📝 Getting version for $app_name..."
     # Use exact tag matching with ^ and $ to avoid partial matches
-    local app_version=$(git ls-remote --tags https://github.com/trieb-work/saleor-appss | \
+    local app_version=$(git ls-remote --tags https://github.com/trieb-work/saleor-apps | \
         grep -E "refs/tags/${app_name}@[0-9]+\.[0-9]+\.[0-9]+$" | \
         grep -v '\^' | \
         cut -d '/' -f 3 | \
