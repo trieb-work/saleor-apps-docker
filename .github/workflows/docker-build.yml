@@ -109,8 +109,9 @@ jobs:
             app_name=$(echo $release | cut -d'@' -f1)
             version=$(echo $release | cut -d'@' -f2)
             
-            # Get the app path (without app- prefix if present)
+            # Get the app path (without saleor-app- or app- prefix if present)
             app_path=$app_name
+            [[ $app_name == saleor-app-* ]] && app_path=${app_name#saleor-app-}
             [[ $app_name == app-* ]] && app_path=${app_name#app-}
             
             # Check if image already exists
