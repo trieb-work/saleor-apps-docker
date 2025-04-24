@@ -131,6 +131,9 @@ jobs:
             git checkout $app_name@$version
             cd ../docker-config
             
+            # Copy the patch-next-config.sh script to the saleor-apps directory
+            cp patch-next-config.sh ../saleor-apps/
+            
             # Build and push the Docker image
             docker buildx build \
               --platform linux/amd64 \
