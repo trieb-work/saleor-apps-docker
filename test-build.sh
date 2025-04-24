@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Test build script for Saleor Apps Docker images
 # 
@@ -57,10 +57,13 @@ build_app() {
     cd ..
     
     echo "🏗️  Building Docker image for $app_name..."
+    cp patch-next-config.sh saleor-apps/
+
     docker build \
         --build-arg APP_NAME=${app_name} \
         --build-arg APP_PATH=${app_path} \
         -t ghcr.io/trieb-work/saleor-apps/${app_name}:${app_version} \
+        --progress=plain \
         -f Dockerfile \
         ./saleor-apps
 }
@@ -68,7 +71,7 @@ build_app() {
 # Test all apps
 apps=(
     "app-avatax:avatax"
-    "cms-v2:cms-v2"
+    "cms-v2:cms"
     "search:search"
     "klaviyo:klaviyo"
     "products-feed:products-feed"

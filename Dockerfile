@@ -10,27 +10,22 @@ RUN corepack enable pnpm
 WORKDIR /app
 
 COPY . .
+RUN chmod +x ./patch-next-config.sh
+
 
 ARG APP_NAME
-
 RUN pnpm install
 
 ARG APP_PATH
-# Add standalone output to next.config.js
-RUN cd apps/${APP_PATH} && \
-    echo "Original next.config.js:" && \
-    cat next.config.js && \
-    if grep -q "const nextConfig = {" next.config.js; then \
-        # Simple object case (most apps)
-        sed -i 's/const nextConfig = {/const nextConfig = { output: "standalone",/' next.config.js; \
-    elif grep -q "return {" next.config.js; then \
-        # Function case (cms-v2)
-        sed -i '/return {/a\    output: "standalone",' next.config.js; \
-    fi && \
-    echo "Modified next.config.js:" && \
-    cat next.config.js
+# Patch next.config.js or next.config.ts using the utility script
+RUN if [ -f apps/${APP_PATH}/next.config.js ]; then \
+  sh patch-next-config.sh apps/${APP_PATH}/next.config.js; \
+  elif [ -f apps/${APP_PATH}/next.config.ts ]; then \
+  sh patch-next-config.sh apps/${APP_PATH}/next.config.ts; \
+  fi
 
-# Set environment variables. Mostly dummy that get replaced on runtime
+RUN echo "Next config: $(cat apps/${APP_PATH}/next.config.js)"
+# # Set environment variables. Mostly dummy that get replaced on runtime
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV SECRET_KEY="dummy_secret_key_for_build_time_only"
 ENV APL="file"
@@ -43,7 +38,7 @@ ENV DYNAMODB_MAIN_TABLE_NAME="dummy"
 
 RUN cd apps/${APP_PATH} && pnpm build 
 
-# Production image, copy all the files and run next
+# # Production image, copy all the files and run next
 FROM default AS runner
 WORKDIR /app
 

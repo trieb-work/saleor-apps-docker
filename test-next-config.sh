@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Test script to verify next.config.js modifications for all apps
-# This script will clone the repo and test our next.config.js modifications without building
+# Test script to verify next.config.js/.ts modifications for all apps
+# This script will clone the repo and test our next.config.js/.ts modifications without building
 
 # Clean up
 rm -rf saleor-apps
@@ -9,83 +9,79 @@ echo "🧹 Cleaning up previous test..."
 
 # Clone repo
 echo "📦 Cloning Saleor Apps repository..."
-git clone https://github.com/trieb-work/saleor-appss.git saleor-apps
+git clone https://github.com/trieb-work/saleor-apps.git saleor-apps
 cd saleor-apps
 
 # Apps to test
 apps=(
     "avatax"
-    "cms-v2"
+    "cms"
     "search"
     "klaviyo"
     "products-feed"
-    "smtp"
+    "smtp",
+    "segment"
 )
-
-modify_next_config() {
-    local file=$1
-    local temp_file="${file}.tmp"
-    
-    # Add output: "standalone" to the config object
-    if grep -q "const nextConfig = {" "$file"; then
-        # Simple object case
-        sed 's/const nextConfig = {/const nextConfig = { output: "standalone",/' "$file" > "$temp_file"
-    elif grep -q "return {" "$file"; then
-        # Function returning object case
-        sed '/return {/a\    output: "standalone",' "$file" > "$temp_file"
-    elif grep -q "const nextConfig = " "$file"; then
-        # Variable assignment case
-        sed '/const nextConfig = /a\nextConfig.output = "standalone";' "$file" > "$temp_file"
-    else
-        echo "❌ Could not find a suitable place to add output: standalone"
-        return 1
-    fi
-    
-    mv "$temp_file" "$file"
-    return 0
-}
 
 for app in "${apps[@]}"; do
     echo ""
     echo "Testing app: $app"
     echo "===================="
     
-    if [ ! -f "apps/$app/next.config.js" ]; then
-        echo "❌ next.config.js not found for $app"
+    config_file_js="apps/$app/next.config.js"
+    config_file_ts="apps/$app/next.config.ts"
+    
+    if [ -f "$config_file_js" ]; then
+        config_file="$config_file_js"
+    elif [ -f "$config_file_ts" ]; then
+        config_file="$config_file_ts"
+    else
+        echo "❌ next.config.js/.ts not found for $app"
         continue
     fi
 
-    echo "Original next.config.js:"
+    echo "Original $config_file:"
     echo "--------------------"
-    cat "apps/$app/next.config.js"
+    cat "$config_file"
     echo ""
     
     # Create a backup
-    cp "apps/$app/next.config.js" "apps/$app/next.config.js.bak"
+    cp "$config_file" "$config_file.bak"
     
-    # Test modification
-    if modify_next_config "apps/$app/next.config.js"; then
-        echo "✅ Successfully modified next.config.js"
+    # Patch using the new utility script
+    if ../patch-next-config.sh "$config_file"; then
+        echo "✅ Successfully modified $config_file"
     else
-        echo "❌ Failed to modify next.config.js"
+        echo "❌ Failed to modify $config_file"
     fi
     
     echo ""
-    echo "Modified next.config.js:"
+    echo "Modified $config_file:"
     echo "--------------------"
-    cat "apps/$app/next.config.js"
+    cat "$config_file"
     echo ""
     
-    # Verify the file is still valid JavaScript
-    if node -c "apps/$app/next.config.js" 2>/dev/null; then
-        echo "✅ Syntax check passed"
-    else
-        echo "❌ Syntax check failed"
+    # Verify the file is still valid JavaScript/TypeScript (basic check)
+    if [[ "$config_file" == *.js ]]; then
+        if node -c "$config_file" 2>/dev/null; then
+            echo "✅ Syntax check passed"
+        else
+            echo "❌ Syntax check failed"
+        fi
+    elif [[ "$config_file" == *.ts ]]; then
+        if command -v tsc >/dev/null 2>&1; then
+            if tsc --noEmit "$config_file" 2>/dev/null; then
+                echo "✅ TypeScript type check passed"
+            else
+                echo "❌ TypeScript type check failed"
+            fi
+        else
+            echo "⚠️  tsc not found, skipping TypeScript check"
+        fi
     fi
     
     # Restore backup
-    mv "apps/$app/next.config.js.bak" "apps/$app/next.config.js"
+    mv "$config_file.bak" "$config_file"
 done
 
 cd ..
-rm -rf saleor-apps
