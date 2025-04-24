@@ -24,7 +24,6 @@ RUN if [ -f apps/${APP_PATH}/next.config.js ]; then \
   sh patch-next-config.sh apps/${APP_PATH}/next.config.ts; \
   fi
 
-RUN echo "Next config: $(cat apps/${APP_PATH}/next.config.js)"
 # # Set environment variables. Mostly dummy that get replaced on runtime
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV SECRET_KEY="dummy_secret_key_for_build_time_only"
