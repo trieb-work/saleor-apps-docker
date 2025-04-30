@@ -1,3 +1,12 @@
+# Run from the root directory with saleor-apps (the saleor apps repo) as build context
+# docker build \
+# --build-arg APP_NAME=${app_name} \
+# --build-arg APP_PATH=${app_path} \
+# -t ghcr.io/trieb-work/saleor-apps/${app_name}:${version} \
+# --progress=plain \
+# -f Dockerfile \
+# ./saleor-apps
+
 FROM node:22-alpine AS default
 
 FROM default AS base
