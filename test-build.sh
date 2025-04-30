@@ -14,7 +14,7 @@
 #
 # Supported apps:
 #   - app-avatax
-#   - cms-v2
+#   - cms
 #   - search
 #   - klaviyo
 #   - products-feed
@@ -86,7 +86,7 @@ build_app() {
 # Test all apps
 apps=(
     "app-avatax:avatax"
-    "cms-v2:cms"
+    "cms:cms"
     "search:search"
     "klaviyo:klaviyo"
     "products-feed:products-feed"
