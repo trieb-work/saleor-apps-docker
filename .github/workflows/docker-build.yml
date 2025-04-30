@@ -65,42 +65,49 @@ jobs:
                 app_name=$(node -p "require('./$app_dir/package.json').name")
                 version=$(node -p "require('./$app_dir/package.json').version")
                 echo "$app_name@$version" >> ../apps_to_build.txt
+                fi
+              done
+            elif [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ github.event.inputs.specific_app }}" ]]; then
+              # Build specific app
+              app_name="${{ github.event.inputs.specific_app }}"
+              if [ -f "apps/${app_name}/package.json" ]; then
+                version=$(node -p "require('./apps/${app_name}/package.json').version")
+                echo "$app_name@$version" >> ../apps_to_build.txt
+              else
+                echo "Error: App $app_name not found"
+                exit 1
               fi
-            done
-          elif [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ github.event.inputs.specific_app }}" ]]; then
-            # Build specific app
-            app_name="${{ github.event.inputs.specific_app }}"
-            if [ -f "apps/${app_name}/package.json" ]; then
-              version=$(node -p "require('./apps/${app_name}/package.json').version")
-              echo "$app_name@$version" >> ../apps_to_build.txt
             else
-              echo "Error: App $app_name not found"
-              exit 1
+              # Get valid app names from the apps directory
+              echo "Getting valid app names..."
+              declare -A latest_releases
+              
+              # Create a list of valid app names from the apps directory
+              for app_dir in apps/*; do
+                if [ -f "$app_dir/package.json" ]; then
+                  app_name=$(node -p "require('./$app_dir/package.json').name")
+                  echo "Found app: $app_name"
+                  
+                  # Get the latest release for this app using GitHub API
+                  latest_release=$(curl -s "https://api.github.com/repos/trieb-work/saleor-apps/releases" | \
+                    jq -r --arg app "$app_name" \
+                    '.[] | select(.tag_name | test("^" + $app + "@[0-9]+\\.[0-9]+\\.[0-9]+$")) | .tag_name' | \
+                    head -n 1)
+                  
+                  if [ -n "$latest_release" ]; then
+                    echo "Latest release for $app_name: $latest_release"
+                    echo "$latest_release" >> ../apps_to_build.txt
+                  else
+                    echo "No release found for $app_name, using package.json version"
+                    version=$(node -p "require('./$app_dir/package.json').version")
+                    echo "$app_name@$version" >> ../apps_to_build.txt
+                  fi
+                fi
+              done
             fi
-          else
-            # Get releases from GitHub API and filter only for actual apps
-            releases=$(curl -s "https://api.github.com/repos/trieb-work/saleor-apps/releases")
             
-            # Create a list of valid app names from the apps directory
-            echo "Getting valid app names..."
-            valid_apps=()
-            for app_dir in apps/*; do
-              if [ -f "$app_dir/package.json" ]; then
-                app_name=$(node -p "require('./$app_dir/package.json').name")
-                valid_apps+=("$app_name")
-              fi
-            done
-            
-            # Filter releases to only include valid apps with exact matching
-            for app in "${valid_apps[@]}"; do
-              echo "$releases" | jq -r --arg app "$app" \
-                '.[] | select(.tag_name | test("^" + $app + "@[0-9]+\\.[0-9]+\\.[0-9]+$")) | .tag_name' >> ../apps_to_build.txt
-            done
-          fi
-          
-          echo "Apps to build:"
-          cat ../apps_to_build.txt
-
+            echo "Apps to build:"
+            cat ../apps_to_build.txt
       - name: Build and push Docker images
         working-directory: docker-config
         run: |
