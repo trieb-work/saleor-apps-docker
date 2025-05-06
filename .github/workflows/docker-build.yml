@@ -121,6 +121,9 @@ jobs:
             [[ $app_name == saleor-app-* ]] && app_path=${app_name#saleor-app-}
             [[ $app_name == app-* ]] && app_path=${app_name#app-}
             
+            # Special case mapping for certain apps
+            [[ $app_name == "payment-stripe" ]] && app_path="stripe"
+            
             # Check if image already exists
             image_tag="ghcr.io/trieb-work/saleor-apps/${app_name}:${version}"
             echo "Checking if image ${image_tag} exists..."
