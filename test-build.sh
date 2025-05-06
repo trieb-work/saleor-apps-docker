@@ -92,6 +92,7 @@ apps=(
     "products-feed:products-feed"
     "smtp:smtp"
     "segment:segment"
+    "payment-stripe:stripe"
 )
 
 # Check if an app was specified
